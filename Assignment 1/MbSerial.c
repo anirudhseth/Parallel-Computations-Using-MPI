@@ -1,8 +1,30 @@
 #include <stdio.h>
 #include <math.h>
+#include <mpi.h>
 
-void getColor(unsigned char *color,int it,int MaxIter)
+int mandelBrot(double Cx, double Cy)
+{
+    double Zx, Zy;
+    double Zx2, Zy2;
+    int it;
+    int MaxIter = 80;
+      Zx = 0.0;
+      Zy = 0.0;
+      Zx2 = Zx * Zx;
+      Zy2 = Zy * Zy;
+
+      for (it = 0; it < MaxIter && ((Zx2 + Zy2) < 4); it++)
+      {
+        Zy = 2 * Zx * Zy + Cy;
+        Zx = Zx2 - Zy2 + Cx;
+        Zx2 = Zx * Zx;
+        Zy2 = Zy * Zy;
+      };
+      return it;
+}
+void getColor(unsigned char *color,int it)
 {    
+      int MaxIter = 80;
       if (it == MaxIter)
       { /*  interior of Mandelbrot set white */
         color[0] = 255;
@@ -130,16 +152,14 @@ int main()
   FILE *fp;
   char *filename = "mandelbrot.ppm";
   static unsigned char color[3];
-  double Zx, Zy;
-  double Zx2, Zy2;
-  int it;
-  int MaxIter = 80;
-  double Radius = 2;
-  double R2 = Radius * Radius;
 
+  MPI_Status status;
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  fp = fopen(filename, "wb");
-  fprintf(fp, "P6\n %d\n %d\n %d\n", xRes, yRes, 255);
+  int wp = xRes/size;
+  int xOff = rank*wp;
 
   for (iY = 0; iY < yRes; iY++)
   {
@@ -147,24 +167,13 @@ int main()
     Cy = yMin + iY * PixelHeight;
     if (fabs(Cy) < PixelHeight / 2)
       Cy = 0.0;
-    for (iX = 0; iX < xRes; iX++)
+    for (iX = xOff; iX < xOff+wp-1; iX++)
     {
-
+ 
       Cx = xMin + iX * PixelWidth;
-      Zx = 0.0;
-      Zy = 0.0;
-      Zx2 = Zx * Zx;
-      Zy2 = Zy * Zy;
-      /* */
-      for (it = 0; it < MaxIter && ((Zx2 + Zy2) < R2); it++)
-      {
-        Zy = 2 * Zx * Zy + Cy;
-        Zx = Zx2 - Zy2 + Cx;
-        Zx2 = Zx * Zx;
-        Zy2 = Zy * Zy;
-      };
-
-      getColor(color,it,MaxIter);
+     
+      int it=mandelBrot(Cx,Cy);
+      getColor(color,it);
       fwrite(color, 1, 3, fp);
     }
   }
