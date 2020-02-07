@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <math.h>
 
@@ -15,7 +14,7 @@ int main()
   double yMax = 2.0;
   double PixelWidth = (xMax - xMin) / xRes;
   double PixelHeight = (yMax - yMin) / yRes;
-  int MaxColorComponentValue = 255;
+
   FILE *fp;
   char *filename = "mandelbrot.ppm";
   static unsigned char color[3];
@@ -25,12 +24,12 @@ int main()
   int it;
   int MaxIter = 80;
 
-  double EscapeRadius = 2;
-  double ER2 = EscapeRadius * EscapeRadius;
+  double Radius = 2;
+  double R2 = Radius * Radius;
 
   fp = fopen(filename, "wb");
 
-  fprintf(fp, "P6\n %d\n %d\n %d\n", xRes, yRes, MaxColorComponentValue);
+  fprintf(fp, "P6\n %d\n %d\n %d\n", xRes, yRes, 255);
 
   for (iY = 0; iY < yRes; iY++)
   {
@@ -45,7 +44,7 @@ int main()
       Zx2 = Zx * Zx;
       Zy2 = Zy * Zy;
       /* */
-      for (it = 0; it < MaxIter && ((Zx2 + Zy2) < ER2); it++)
+      for (it = 0; it < MaxIter && ((Zx2 + Zy2) < R2); it++)
       {
         Zy = 2 * Zx * Zy + Cy;
         Zx = Zx2 - Zy2 + Cx;
