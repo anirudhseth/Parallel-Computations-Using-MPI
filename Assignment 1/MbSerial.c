@@ -127,30 +127,32 @@ int main()
   double yMax = 2.0;
   double PixelWidth = (xMax - xMin) / xRes;
   double PixelHeight = (yMax - yMin) / yRes;
-
   FILE *fp;
   char *filename = "mandelbrot.ppm";
   static unsigned char color[3];
   double Zx, Zy;
   double Zx2, Zy2;
-
   int it;
   int MaxIter = 80;
-
   double Radius = 2;
   double R2 = Radius * Radius;
+  int numOfProcessor=1;
+  int p=0; // rank of processor
+  int yOff=0;
+  int xOff=(p*PixelWidth)/numOfProcessor;
 
   fp = fopen(filename, "wb");
-
   fprintf(fp, "P6\n %d\n %d\n %d\n", xRes, yRes, 255);
 
   for (iY = 0; iY < yRes; iY++)
   {
+    yMin+=yOff;
     Cy = yMin + iY * PixelHeight;
     if (fabs(Cy) < PixelHeight / 2)
       Cy = 0.0;
     for (iX = 0; iX < xRes; iX++)
     {
+      xMin+=xOff;
       Cx = xMin + iX * PixelWidth;
       Zx = 0.0;
       Zy = 0.0;
