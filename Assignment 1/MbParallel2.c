@@ -7,7 +7,7 @@ int mandelBrot(double Cx, double Cy) {
   double Zx, Zy;
   double Zx2, Zy2;
   int it;
-  int MaxIter = 80;
+  int MaxIter = 100;
   Zx = 0.0;
   Zy = 0.0;
   Zx2 = Zx * Zx;
@@ -23,14 +23,21 @@ int mandelBrot(double Cx, double Cy) {
 }
 
 int main(int argc, char ** argv) {
+  if (argc != 6) {
+    printf("Usage:   %s <xmin> <xmax> <ymin> <ymax> <Filename>\n", argv[0]);
+    printf("Example: %s -2 2 -2 2 fig1.txt\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
+
   int P, rank;
   int xRes = 2048;
   int yRes = 2048;
   double Cx, Cy;
-  double xMin = -2;
-  double xMax = 2;
-  double yMin = -2.0;
-  double yMax = 2.0;
+  double xMin = atof(argv[1]);
+  double xMax = atof(argv[2]);
+  double yMin = atof(argv[3]);
+  double yMax = atof(argv[4]);
+  const char* filename = argv[5];
   double PixelWidth = (xMax - xMin) / xRes;
   double PixelHeight = (yMax - yMin) / yRes;
   FILE * fp;
@@ -64,7 +71,7 @@ int main(int argc, char ** argv) {
 
   data = data_start;
   if (rank == 0) {
-    fp = fopen("color.txt", "w");
+    fp = fopen(filename, "w");
     printf("Process %d completed.\n", rank);
     for (int i = 0; i < wp; i++) {
       for (int j = 0; j < yRes; j++) {
@@ -78,7 +85,7 @@ int main(int argc, char ** argv) {
     for (int k = 1; k < P; k++) {
       MPI_Recv(data, wp * yRes, MPI_INTEGER, k, 0, MPI_COMM_WORLD, & status);
       printf("Process %d completed.\n", k);
-      fp = fopen("color.txt", "a");
+      fp = fopen(filename, "a");
       for (int i = 0; i < wp; i++) {
         for (int j = 0; j < yRes; j++) {
           fprintf(fp, "%hhu ", (unsigned char) data[j + i * yRes]);
