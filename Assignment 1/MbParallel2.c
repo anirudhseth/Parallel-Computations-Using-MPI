@@ -49,6 +49,10 @@ int main(int argc, char ** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, & rank);
 
   int wp = xRes / P;
+  if(xRes%P!=0){
+      printf("Resolution can not be evenly divided.");
+      return 0;
+    }
   int start = rank * wp;
   int end = start + wp;
 
