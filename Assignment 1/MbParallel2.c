@@ -7,73 +7,70 @@ int mandelBrot(double Cx, double Cy) {
   double Zx, Zy;
   double Zx2, Zy2;
   int it;
-  int MaxIter = 100;
-  Zx = 0.0;
-  Zy = 0.0;
-  Zx2 = Zx * Zx;
-  Zy2 = Zy * Zy;
+  int MaxIter=100;
+  Zx=0.0;
+  Zy=0.0;
+  Zx2=Zx*Zx;
+  Zy2=Zy*Zy;
 
-  for (it = 0; it < MaxIter && ((Zx2 + Zy2) < 4); it++) {
-    Zy = 2 * Zx * Zy + Cy;
-    Zx = Zx2 - Zy2 + Cx;
-    Zx2 = Zx * Zx;
-    Zy2 = Zy * Zy;
+  for (it = 0;it<MaxIter && ((Zx2+Zy2)<4);it++) {
+    Zy=2*Zx*Zy+Cy;
+    Zx=Zx2-Zy2+Cx;
+    Zx2=Zx*Zx;
+    Zy2=Zy*Zy;
   };
   return it;
 }
 
 int main(int argc, char ** argv) {
-  if (argc != 6) {
+  if (argc!= 6) {
     printf("Usage:   %s <xmin> <xmax> <ymin> <ymax> <Filename>\n", argv[0]);
     printf("Example: %s -2 2 -2 2 fig1.txt\n", argv[0]);
-    exit(EXIT_FAILURE);
+    exit(0);
   }
-
-  int P, rank;
-  int xRes = 2048;
-  int yRes = 2048;
-  double Cx, Cy;
-  double xMin = atof(argv[1]);
-  double xMax = atof(argv[2]);
-  double yMin = atof(argv[3]);
-  double yMax = atof(argv[4]);
+    int P,rank;
+  int xRes=2048;
+  int yRes=2048;
+  double Cx, Cy,rc,tag;
+  double xMin=atof(argv[1]);
+  double xMax=atof(argv[2]);
+  double yMin=atof(argv[3]);
+  double yMax=atof(argv[4]);
   const char* filename = argv[5];
-  double PixelWidth = (xMax - xMin) / xRes;
-  double PixelHeight = (yMax - yMin) / yRes;
-  FILE * fp;
-  int * data, * data_start;
-
+  double PixelWidth=(xMax-xMin)/xRes;
+  double PixelHeight=(yMax-yMin)/yRes;
+  FILE *fp;
+  int *data,*data_start;
+  tag=100;
   MPI_Status status;
-  MPI_Init( & argc, & argv);
-  MPI_Comm_size(MPI_COMM_WORLD, & P);
-  MPI_Comm_rank(MPI_COMM_WORLD, & rank);
+  rc=MPI_Init(&argc,&argv);
+  rc=MPI_Comm_size(MPI_COMM_WORLD,&P);
+  rc=MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
-  int wp = xRes / P;
+  int wp=xRes/P;
   if(xRes%P!=0){
       printf("Resolution can not be evenly divided.");
       return 0;
     }
-  int start = rank * wp;
+  int start = rank*wp;
   int end = start + wp;
 
-  data = (int * ) malloc(wp * yRes * sizeof(int));
+  data=(int*)malloc(wp*yRes*sizeof(int));
   data_start = data;
 
-  fprintf(fp, "P6\n %d\n %d\n %d\n", wp, yRes, 255);
-  for (int iX = start; iX < end; iX++) {
+  for (int iX=start;iX<end;iX++) {
 
-    Cx = xMin + iX * PixelWidth;
+    Cx = xMin + iX*PixelWidth;
     for (int iY = 0; iY < yRes; iY++) {
-      Cy = yMin + iY * PixelHeight;
+      Cy = yMin + iY*PixelHeight;
       if (fabs(Cy) < PixelHeight / 2)
         Cy = 0.0;
 
       int it = mandelBrot(Cx, Cy);
-      * data++ = it;
+      *data++ = it;
     }
   }
-
-  data = data_start;
+    data=data_start;
   if (rank == 0) {
     fp = fopen(filename, "w");
     printf("Process %d completed.\n", rank);
@@ -87,7 +84,7 @@ int main(int argc, char ** argv) {
     fclose(fp);
 
     for (int k = 1; k < P; k++) {
-      MPI_Recv(data, wp * yRes, MPI_INTEGER, k, 0, MPI_COMM_WORLD, & status);
+      MPI_Recv(data, wp*yRes, MPI_INTEGER, k, tag, MPI_COMM_WORLD, &status);
       printf("Process %d completed.\n", k);
       fp = fopen(filename, "a");
       for (int i = 0; i < wp; i++) {
@@ -100,9 +97,9 @@ int main(int argc, char ** argv) {
       fclose(fp);
     }
   } else {
-    MPI_Send(data, wp * yRes, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
+    rc=MPI_Send(data, wp*yRes, MPI_INTEGER, 0, tag, MPI_COMM_WORLD);
   }
 
-  MPI_Finalize();
+ rc=MPI_Finalize();
   return 0;
 }
