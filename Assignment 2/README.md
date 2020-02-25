@@ -1,12 +1,13 @@
 #compare plots<br/>
-fromMPI = importdata('output.txt')<br/>
-u_ode= @(x) power(x,2) - x<br/>
-N=1000<br/>
-x = linspace(0, 1, N)<br/>
-u = u_ode(x)<br/>
-plot(u)<br/>
-hold all<br/>
-plot(fromMPI)<br/>
+fromMPI = importdata('output.txt');<br/>
+u_ode= @(x) power(x,2) - x;<br/>
+N=1000;<br/>
+x = linspace(0, 1, N+2);<br/>
+x = x(2:end-1);<br/>
+u = u_ode(x);<br/>
+plot(u);<br/>
+hold all;<br/>
+plot(fromMPI);<br/>
 
 
 
