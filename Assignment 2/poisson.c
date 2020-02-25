@@ -84,11 +84,11 @@ int main(int argc, char * argv[]) {
   for (step = 0; step < SMX; step++) {
     /* RB communication of overlap */
     if (p % 2 == 0) { // red
-      if (p != P - 1) {
+      if (p != P - 1) { // check if no processor on the right
         MPI_Send( & u[I], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
         MPI_Recv( & u[I + 1], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD, & status);
       }
-      if (p != 0) {
+      if (p != 0) { // check if no processor on the left
         MPI_Send( & u[1], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD);
         MPI_Recv( & u[0], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD, & status);
       }
