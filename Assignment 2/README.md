@@ -12,7 +12,7 @@ plot(fromMPI);<br/>
 
 
 # solve pde analytically <br/>
-# https://se.mathworks.com/help/symbolic/solve-a-single-differential-equation.html<br/>
+https://se.mathworks.com/help/symbolic/solve-a-single-differential-equation.html<br/>
 syms y(x)<br/>
 ode = diff(y,x,2) ==x*y+2-x *x *(x-1)<br/>
 cond1 = y(0) == 0<br/>
