@@ -9,11 +9,8 @@
 
 /* Use MPI */
 #include "mpi.h"
-
 #include <stdlib.h>
-
 #include <math.h>
-
 #include <stdio.h>
 
 /* define problem to be solved */
@@ -53,9 +50,9 @@ int main(int argc, char * argv[]) {
   double h;
   /* Initialize MPI */
   MPI_Status status;
-  MPI_Init( & argc, & argv);
-  MPI_Comm_size(MPI_COMM_WORLD, & P); /* Number of processors*/
-  MPI_Comm_rank(MPI_COMM_WORLD, & p); /* Current processors*/
+  MPI_Init( &argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &P); /* Number of processors*/
+  MPI_Comm_rank(MPI_COMM_WORLD, &p); /* Current processors*/
   if (N < P) {
     fprintf(stdout, "Too few discretization points...\n");
     exit(1);
@@ -68,10 +65,10 @@ int main(int argc, char * argv[]) {
   h = 1.0 / (N + 1);
 
   /* arrays */
-  double * unew = (double * ) calloc(I, sizeof(double));
-  double * rr = (double * ) calloc(I, sizeof(double));
-  double * ff = (double * ) calloc(I, sizeof(double));
-  double * u = (double * ) calloc(I + 2, sizeof(double));
+  double *unew = (double * ) calloc(I, sizeof(double));
+  double *rr = (double * ) calloc(I, sizeof(double));
+  double *ff = (double * ) calloc(I, sizeof(double));
+  double *u = (double * ) calloc(I + 2, sizeof(double));
 
   for (int i = 0; i < I; i++) {
     int z = getGlobalIndex(L, R, p, i);
@@ -85,21 +82,21 @@ int main(int argc, char * argv[]) {
     /* RB communication of overlap */
     if (p % 2 == 0) { // red
       if (p != P - 1) { // check if no processor on the right
-        MPI_Send( & u[I], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
-        MPI_Recv( & u[I + 1], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD, & status);
+        MPI_Send(&u[I], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
+        MPI_Recv(&u[I + 1], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD,&status);
       }
       if (p != 0) { // check if no processor on the left
-        MPI_Send( & u[1], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD);
-        MPI_Recv( & u[0], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD, & status);
+        MPI_Send(&u[1], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD);
+        MPI_Recv(&u[0], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD,&status);
       }
     } else { // black
       if (p != 0) {
-        MPI_Recv( & u[0], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD, & status);
-        MPI_Send( & u[1], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD);
+        MPI_Recv(&u[0], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD,&status);
+        MPI_Send(&u[1], 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD);
       }
       if (p != P - 1) {
-        MPI_Recv( & u[I + 1], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD, & status);
-        MPI_Send( & u[I], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
+        MPI_Recv(&u[I + 1], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD,&status);
+        MPI_Send(&u[I], 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
       }
     }
     /* local iteration step */
@@ -132,16 +129,16 @@ int main(int argc, char * argv[]) {
       fprintf(f, "%f ", unew[i]);
     }
     fclose(f);
-    MPI_Send( & writeSignal, 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
+    MPI_Send(&writeSignal, 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
   } else {
-    MPI_Recv( & writeSignal, 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD, & status);
+    MPI_Recv(&writeSignal, 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD, &status);
     f = fopen(filename, "a");
     for (size_t i = 0; i < I; i++) {
       fprintf(f, "%f ", unew[i]);
     }
     fclose(f);
     if (p != P - 1) {
-      MPI_Send( & writeSignal, 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
+      MPI_Send(&writeSignal, 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
     }
   }
   /* That's it */
