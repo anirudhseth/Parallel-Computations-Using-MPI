@@ -107,6 +107,36 @@ int main(int argc, char * argv[]) {
       u[i + 1] = unew[i];
     }
 
+      /* The code below saves the u after 10000 step and is used for plotting the error */
+  //   if(step%10000==0)  
+  //   {
+  // const char * filename = "outputError.txt";
+  // double writeSignal = 1.0;
+  // FILE * f;
+  // if (p == 0) {
+  //   f = fopen(filename, "a");
+  //   //  fprintf(f,"\n%d\n", step);
+  //   for (size_t i = 0; i < I; i++) {
+  //     fprintf(f, "%f ", unew[i]);
+  //   }
+  //   fclose(f);
+  //   MPI_Send(&writeSignal, 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
+  // } else {
+  //   MPI_Recv(&writeSignal, 1, MPI_DOUBLE, p - 1, tag, MPI_COMM_WORLD, &status);
+  //   f = fopen(filename, "a");
+  //   for (size_t i = 0; i < I; i++) {
+  //     fprintf(f, "%f ", unew[i]);
+  //   }
+  //   if(p==P-1){
+  //   fprintf(f, "\n\n");}
+  //   fclose(f);
+  //   if (p != P - 1) {
+  //     MPI_Send(&writeSignal, 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
+  //   }
+  // }
+ 
+  //   }
+
   }
 
   /* output for graphical representation */
@@ -140,6 +170,7 @@ int main(int argc, char * argv[]) {
     if (p != P - 1) {
       MPI_Send(&writeSignal, 1, MPI_DOUBLE, p + 1, tag, MPI_COMM_WORLD);
     }
+    
   }
   /* That's it */
   MPI_Finalize();
