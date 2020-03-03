@@ -26,5 +26,5 @@ ySol(x) = dsolve(ode,conds)<br/>
 
 ## RESULTS
 <img src="Plots/Comparision.jpg"></img> 
-<img src="Plots/Error.PNG"></img> 
+<img src="Plots/Error.png"></img> 
  
