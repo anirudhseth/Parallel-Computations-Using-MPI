@@ -221,12 +221,12 @@ int main(int argc, char **argv)
 	{
 		evenPartner = myrank - 1;
 		oddPartner = myrank + 1;
-		if (oddPartner == P) oddPartner = -1;	// Idle during odd phase
+		if (oddPartner == P) oddPartner = -1;	
 	}
 	else
 	{
 		evenPartner = myrank + 1;
-		if (evenPartner == P) evenPartner = -1;	// Idle during even phase
+		if (evenPartner == P) evenPartner = -1;
 		oddPartner = myrank - 1;
 	}
 
