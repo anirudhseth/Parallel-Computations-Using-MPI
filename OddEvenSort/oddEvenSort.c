@@ -25,15 +25,12 @@ void mergeMax(double x[], double tmpMergeListA[], double tmpMergeListB[],
 	{
 		if (x[a] >= tmpMergeListA[b])
 		{
-			tmpMergeListB[c] = x[a];
-			c--;
-			a--;
+			tmpMergeListB[c--] = x[a--];
 		}
 		else
 		{
-			tmpMergeListB[c] = tmpMergeListA[b];
-			c--;
-			b--;
+			tmpMergeListB[c--] = tmpMergeListA[b--];
+
 		}
 	}
 
@@ -51,15 +48,11 @@ void mergeMin(double x[], double tmpMergeListA[], double tmpMergeListB[],
 	{
 		if (x[a] <= tmpMergeListA[b])
 		{
-			tmpMergeListB[c] = x[a];
-			c++;
-			a++;
+			tmpMergeListB[c++] = x[a++];
 		}
 		else
 		{
-			tmpMergeListB[c] = tmpMergeListA[b];
-			c++;
-			b++;
+			tmpMergeListB[c++] = tmpMergeListA[b++];
 		}
 	}
 
