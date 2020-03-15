@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 	}
 	/*local size. Modify if P does not divide N */
 	MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	int r = P % N;
+	int r = N % P;
 
 	if (r==0) { /*if P divides N */
 	    I = N/P;

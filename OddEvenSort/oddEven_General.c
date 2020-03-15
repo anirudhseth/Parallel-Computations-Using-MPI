@@ -15,14 +15,12 @@ int compareDouble(const void *a, const void *b)
 
 
 void mergeMax(double x[], double tmpMergeListA[], double tmpMergeListB[],
-	int I,int mI)
+	int I)
 {
 	/*mergesort a and b */
 	/*return n highest values */
-	
 	int a, b, c;
 	a = b = c = I - 1;
-	
 	while (c >= 0)
 	{
 		if (x[a] >= tmpMergeListA[b])
@@ -40,7 +38,7 @@ void mergeMax(double x[], double tmpMergeListA[], double tmpMergeListB[],
 }
 
 void mergeMin(double x[], double tmpMergeListA[], double tmpMergeListB[],
-	int I,int mI)
+	int I)
 {
 	/*mergesort a and b */
 	/*return n lowest values */
@@ -70,18 +68,16 @@ void oddEvenTranspose(double x[], double tmpMergeListA[], double tmpMergeListB[]
 	if ((phase % 2) == 0)
 	{ /*even phase */
 		if (evenPartner >= 0)
-		{	
+		{
 			MPI_Sendrecv(x, I, MPI_DOUBLE, evenPartner, 0,
-				tmpMergeListA, evenPartnerI, MPI_DOUBLE, evenPartner, 0, comm, &status);
-				
-			
+				tmpMergeListA, I, MPI_DOUBLE, evenPartner, 0, comm, &status);
 			if ((myrank % 2) == 0)
 			{ /*extract highest or lowest I values from merged list*/
-				mergeMin(x, tmpMergeListA, tmpMergeListB, I,evenPartnerI);
+				mergeMin(x, tmpMergeListA, tmpMergeListB, I);
 			}
 			else
 			{
-				mergeMax(x, tmpMergeListA, tmpMergeListB, I,evenPartnerI);
+				mergeMax(x, tmpMergeListA, tmpMergeListB, I);
 			}
 		}
 	}
@@ -90,14 +86,14 @@ void oddEvenTranspose(double x[], double tmpMergeListA[], double tmpMergeListB[]
 		if (oddPartner >= 0)
 		{
 			MPI_Sendrecv(x, I, MPI_DOUBLE, oddPartner, 0,
-				tmpMergeListA, oddPartnerI, MPI_DOUBLE, oddPartner, 0, comm, &status);
+				tmpMergeListA, I, MPI_DOUBLE, oddPartner, 0, comm, &status);
 			if ((myrank % 2) == 0)
 			{
-				mergeMax(x, tmpMergeListA, tmpMergeListB, I,oddPartnerI);
+				mergeMax(x, tmpMergeListA, tmpMergeListB, I);
 			}
 			else
 			{
-				mergeMin(x, tmpMergeListA, tmpMergeListB, I,oddPartnerI);
+				mergeMin(x, tmpMergeListA, tmpMergeListB, I);
 			}
 		}
 	}
@@ -109,6 +105,7 @@ int main(int argc, char **argv)
 	int phase;
 	int evenPartner;
 	int oddPartner;
+	int upperI;
 	double *tmpMergeListA, *tmpMergeListB, *x, *tmpX, *rbuf;
 	double start, finish, loc_elapsed, elapsed;
 	int I, evenPartnerI, oddPartnerI;
@@ -133,25 +130,28 @@ int main(int argc, char **argv)
 	}
 	/*local size. Modify if P does not divide N */
 	MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	int R = N % P;
+	int r = N % P;
 
-	if (R==0) { /*if P divides N */
+	if (r==0) { /*if P divides N */
 	    I = N/P;
+		upperI=I;
 	    }
 
 	else { /*if not, the r first processors will carry one more element than rest */
-	    I = (N-R)/P + (myrank < R);
-		// printf("Processor %d and I is %d\n",myrank,I);
-		
-
+	    I = (N-r)/P + (myrank < r);
+		upperI=(N-r)/P + (0 < r);
 	}
 	/*random number generator initialization */
 	srandom(myrank + 1);
 	/*data generation */
-	x = (double*) malloc(I* sizeof(double));
+	x = (double*) malloc(upperI* sizeof(double));
 	for (int i = 0; i < I; i++)
 	{
 		x[i] = ((double) random()) / (RAND_MAX);
+	}
+	for (int i=I;i<upperI;i++)
+	{
+		x[i]=1.0;
 	}
     if(N<20){
 	printf("Process:%d has :", myrank);
@@ -159,9 +159,8 @@ int main(int argc, char **argv)
 	{
 		printf(" %f", x[i]);
 	}
-	
+
 	printf("\n");}
-	
 	start = MPI_Wtime();
 	if (myrank % 2 != 0)
 	{
@@ -174,42 +173,23 @@ int main(int argc, char **argv)
 		evenPartner = myrank + 1;
 		if (evenPartner == P) evenPartner = -1;
 		oddPartner = myrank - 1;
-		
 	}
 
 	/*local sort */
-	qsort(x, I, sizeof(double), compareDouble);
-	// 	printf("*************After Sorting*************");
-	// 	printf("Process:%d has :", myrank);
-	// for (int i = 0; i < I; i++)
-	// {
-	// 	printf(" %f", x[i]);
-	// }
-	
-	// printf("\n");
+	qsort(x, upperI, sizeof(double), compareDouble);
 
 	/*temporary lists to hold merged lists */
+	tmpMergeListA = (double*) malloc(upperI* sizeof(double));
+	tmpMergeListB = (double*) malloc(upperI* sizeof(double));
 
-	
-	
-	tmpMergeListB = (double*) malloc(I* sizeof(double));
-			evenPartnerI = (N-R)/P + (evenPartner < R);
-		oddPartnerI = (N-R)/P + (oddPartnerI < R);
-		int s= oddPartnerI >evenPartnerI? oddPartnerI:evenPartnerI;
-	tmpMergeListA = (double*) malloc(s* sizeof(double));
-	// printf("Process %d . Even Partner %d has I %d,Odd Partner %d has I %d\n",myrank,evenPartner,evenPartnerI,oddPartner,oddPartnerI);
-	// printf("s:%d\n",s);
-	// exit(1);
 	/*converges in maximum N steps */
 	for (phase = 0; phase < P; phase++)
 	{
-
-		// printf("******Phase:%d******\n",phase);
-		// printf("Process %d . Even Partner %d has I %d,Odd Partner %d has I %d\n",myrank,evenPartner,evenPartnerI,oddPartner,oddPartnerI);
-		
-		oddEvenTranspose(x, tmpMergeListA, tmpMergeListB,I, phase, evenPartner, oddPartner,evenPartnerI, oddPartnerI, myrank, P,
+		oddEvenTranspose(x, tmpMergeListA, tmpMergeListB,
+			upperI, phase, evenPartner, oddPartner,
+			evenPartnerI, oddPartnerI, myrank, P,
 			MPI_COMM_WORLD);
-		
+		// x = tmpX;
 	}
 
 	finish = MPI_Wtime();
@@ -220,10 +200,12 @@ int main(int argc, char **argv)
 
 	if (myrank == 0)
 	{
-		Print = (double*) malloc(N* sizeof(double));
-		MPI_Gather(x, I, MPI_DOUBLE, Print, I, MPI_DOUBLE, 0,
+
+		int t=upperI*P;
+		Print = (double*) malloc(t* sizeof(double));
+		MPI_Gather(x, upperI, MPI_DOUBLE, Print, upperI, MPI_DOUBLE, 0,
 			MPI_COMM_WORLD);
-      if(N<25){
+      if(N<20){
 
 		printf("******************************\n");
 		printf("Final sorted List: ");
@@ -240,7 +222,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		MPI_Gather(x, I, MPI_DOUBLE, Print, I, MPI_DOUBLE, 0,
+		MPI_Gather(x, upperI, MPI_DOUBLE, Print, upperI, MPI_DOUBLE, 0,
 			MPI_COMM_WORLD);
 	}
 
