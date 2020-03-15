@@ -3,230 +3,191 @@
 #include <string.h>
 #include <mpi.h>
 
-int compareDouble(const void *a, const void *b)
-{
-	if (*(double*) a > *(double*) b)
-		return 1;
-	else if (*(double*) a<*(double*) b)
-		return -1;
-	else
-		return 0;
+int compareDouble(const void *a,const void *b) {
+  if ( * (double * ) a > * (double * ) b)
+    return 1;
+  else if ( * (double * ) a < * (double * ) b)
+    return -1;
+  else
+    return 0;
 }
 
-
 void mergeMax(double x[], double tmpMergeListA[], double tmpMergeListB[],
-	int I)
-{
-	/*mergesort a and b */
-	/*return n highest values */
-	int a, b, c;
-	a = b = c = I - 1;
-	while (c >= 0)
-	{
-		if (x[a] >= tmpMergeListA[b])
-		{
-			tmpMergeListB[c--] = x[a--];
-		}
-		else
-		{
-			tmpMergeListB[c--] = tmpMergeListA[b--];
-
-		}
-	}
-
-	memcpy(x, tmpMergeListB, I* sizeof(double));
+  int I) {
+  /*mergesort a and b */
+  /*return n highest values */
+  int a, b, c;
+  a = b = c = I - 1;
+  while (c >= 0) {
+    if (x[a] >= tmpMergeListA[b]) {
+      tmpMergeListB[c--] = x[a--];
+    } else {
+      tmpMergeListB[c--] = tmpMergeListA[b--];
+    }
+  }
+  memcpy(x, tmpMergeListB, I * sizeof(double));
 }
 
 void mergeMin(double x[], double tmpMergeListA[], double tmpMergeListB[],
-	int I)
-{
-	/*mergesort a and b */
-	/*return n lowest values */
-	int a, b, c;
-	a = b = c = 0;
-	while (c < I)
-	{
-		if (x[a] <= tmpMergeListA[b])
-		{
-			tmpMergeListB[c++] = x[a++];
-		}
-		else
-		{
-			tmpMergeListB[c++] = tmpMergeListA[b++];
-		}
-	}
-
-	memcpy(x, tmpMergeListB, I* sizeof(double));
+  int I) {
+  /*mergesort a and b */
+  /*return n lowest values */
+  int a, b, c;
+  a = b = c = 0;
+  while (c < I) {
+    if (x[a] <= tmpMergeListA[b]) {
+      tmpMergeListB[c++] = x[a++];
+    } else {
+      tmpMergeListB[c++] = tmpMergeListA[b++];
+    }
+  }
+  memcpy(x, tmpMergeListB, I * sizeof(double));
 }
 
 void oddEvenTranspose(double x[], double tmpMergeListA[], double tmpMergeListB[],
-	int I, int phase, int evenPartner, int oddPartner,
-	int evenPartnerI, int oddPartnerI, int myrank,
-	int P, MPI_Comm comm)
-{
-	MPI_Status status;
-	if ((phase % 2) == 0)
-	{ /*even phase */
-		if (evenPartner >= 0)
-		{
-			MPI_Sendrecv(x, I, MPI_DOUBLE, evenPartner, 0,
-				tmpMergeListA, I, MPI_DOUBLE, evenPartner, 0, comm, &status);
-			if ((myrank % 2) == 0)
-			{ /*extract highest or lowest I values from merged list*/
-				mergeMin(x, tmpMergeListA, tmpMergeListB, I);
-			}
-			else
-			{
-				mergeMax(x, tmpMergeListA, tmpMergeListB, I);
-			}
-		}
-	}
-	else
-	{ /*odd phase */
-		if (oddPartner >= 0)
-		{
-			MPI_Sendrecv(x, I, MPI_DOUBLE, oddPartner, 0,
-				tmpMergeListA, I, MPI_DOUBLE, oddPartner, 0, comm, &status);
-			if ((myrank % 2) == 0)
-			{
-				mergeMax(x, tmpMergeListA, tmpMergeListB, I);
-			}
-			else
-			{
-				mergeMin(x, tmpMergeListA, tmpMergeListB, I);
-			}
-		}
-	}
+  int I, int phase, int evenPartner, int oddPartner,
+  int evenPartnerI, int oddPartnerI, int myrank,
+  int P, MPI_Comm comm) {
+  MPI_Status status;
+  if ((phase % 2) == 0) {
+    /*even phase */
+    if (evenPartner >= 0) {
+      MPI_Sendrecv(x, I, MPI_DOUBLE, evenPartner, 0,
+        tmpMergeListA, I, MPI_DOUBLE, evenPartner, 0, comm, & status);
+      if ((myrank % 2) == 0) {
+        /*extract highest or lowest I values from merged list*/
+        mergeMin(x, tmpMergeListA, tmpMergeListB, I);
+      } else {
+        mergeMax(x, tmpMergeListA, tmpMergeListB, I);
+      }
+    }
+  } else {
+    /*odd phase */
+    if (oddPartner >= 0) {
+      MPI_Sendrecv(x, I, MPI_DOUBLE, oddPartner, 0,
+        tmpMergeListA, I, MPI_DOUBLE, oddPartner, 0, comm, & status);
+      if ((myrank % 2) == 0) {
+        mergeMax(x, tmpMergeListA, tmpMergeListB, I);
+      } else {
+        mergeMin(x, tmpMergeListA, tmpMergeListB, I);
+      }
+    }
+  }
 }
 
-int main(int argc, char **argv)
-{
-	int N, myrank, P;
-	int phase;
-	int evenPartner;
-	int oddPartner;
-	int upperI;
-	double *tmpMergeListA, *tmpMergeListB, *x, *tmpX, *rbuf;
-	double start, finish, loc_elapsed, elapsed;
-	int I, evenPartnerI, oddPartnerI;
-	int *Ilist, *displs; /*to enable MPI_Gatherv when different no. of els. on each proc. */
-	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &P);
-	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-	MPI_Status status;
+int main(int argc, char ** argv) {
+  int N, myrank, P;
+  int phase;
+  int evenPartner;
+  int oddPartner;
+  int upperI;
+  double * tmpMergeListA, * tmpMergeListB, * x, * tmpX, * rbuf;
+  double start, finish, loc_elapsed, elapsed;
+  int I, evenPartnerI, oddPartnerI;
+  int * Ilist, * displs; /*to enable MPI_Gatherv when different no. of els. on each proc. */
+  MPI_Init( & argc, & argv);
+  MPI_Comm_size(MPI_COMM_WORLD, & P);
+  MPI_Comm_rank(MPI_COMM_WORLD, & myrank);
+  MPI_Status status;
+  /*Find problem size N from command line */
+  if (myrank == 0) {
+    if (argc != 2 || atoi(argv[1]) < 1) {
+      printf("Usage: mpirun -np<p> %s<n>\n", argv[0]);
+      MPI_Abort(MPI_COMM_WORLD, 0);
+    } else {
+      N = atoi(argv[1]);
+    }
+  }
+  /*local size. Modify if P does not divide N */
+  MPI_Bcast( & N, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  int r = N % P;
+  if (r == 0) {
+    /*if P divides N */
+    I = N / P;
+    upperI = I;
+  } else {
+    /*if not, the r first processors will carry one more element than rest */
+    I = (N - r) / P + (myrank < r);
+    upperI = (N - r) / P + (0 < r);
+  }
+  /*random number generator initialization */
+  srandom(myrank + 1);
+  /*data generation */
+  x = (double * ) malloc(upperI * sizeof(double));
+  for (int i = 0; i < I; i++) {
+    x[i] = ((double) random()) / (RAND_MAX);
+  }
+  for (int i = I; i < upperI; i++) {
+    x[i] = 1.0;
+  }
+  if (N < 20) {
+    printf("Process:%d has :", myrank);
+    for (int i = 0; i < I; i++) {
+      printf(" %f", x[i]);
+    }
 
-	/*Find problem size N from command line */
-	if (myrank == 0)
-	{
-		if (argc != 2 || atoi(argv[1]) < 1)
-		{
-			printf("Usage: mpirun -np<p> %s<n>\n", argv[0]);
-			MPI_Abort(MPI_COMM_WORLD, 0);
-		}
-		else
-		{
-			N = atoi(argv[1]);
-		}
-	}
-	/*local size. Modify if P does not divide N */
-	MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	int r = N % P;
+    printf("\n");
+  }
+  start = MPI_Wtime();
+  if (myrank % 2 != 0) {
+    evenPartner = myrank - 1;
+    oddPartner = myrank + 1;
+    if (oddPartner == P) oddPartner = -1;
+  } else {
+    evenPartner = myrank + 1;
+    if (evenPartner == P) evenPartner = -1;
+    oddPartner = myrank - 1;
+  }
 
-	if (r==0) { /*if P divides N */
-	    I = N/P;
-		upperI=I;
-	    }
+  /*local sort */
+  qsort(x, upperI, sizeof(double), compareDouble);
 
-	else { /*if not, the r first processors will carry one more element than rest */
-	    I = (N-r)/P + (myrank < r);
-		upperI=(N-r)/P + (0 < r);
-	}
-	/*random number generator initialization */
-	srandom(myrank + 1);
-	/*data generation */
-	x = (double*) malloc(upperI* sizeof(double));
-	for (int i = 0; i < I; i++)
-	{
-		x[i] = ((double) random()) / (RAND_MAX);
-	}
-	for (int i=I;i<upperI;i++)
-	{
-		x[i]=1.0;
-	}
-    if(N<20){
-	printf("Process:%d has :", myrank);
-	for (int i = 0; i < I; i++)
-	{
-		printf(" %f", x[i]);
-	}
+  /*temporary lists to hold merged lists */
+  tmpMergeListA = (double * ) malloc(upperI * sizeof(double));
+  tmpMergeListB = (double * ) malloc(upperI * sizeof(double));
 
-	printf("\n");}
-	start = MPI_Wtime();
-	if (myrank % 2 != 0)
-	{
-		evenPartner = myrank - 1;
-		oddPartner = myrank + 1;
-		if (oddPartner == P) oddPartner = -1;	
-	}
-	else
-	{
-		evenPartner = myrank + 1;
-		if (evenPartner == P) evenPartner = -1;
-		oddPartner = myrank - 1;
-	}
+  /*converges in maximum N steps */
+  for (phase = 0; phase < P; phase++) {
+    oddEvenTranspose(x, tmpMergeListA, tmpMergeListB,
+      upperI, phase, evenPartner, oddPartner,
+      evenPartnerI, oddPartnerI, myrank, P,
+      MPI_COMM_WORLD);
+    // x = tmpX;
+  }
 
-	/*local sort */
-	qsort(x, upperI, sizeof(double), compareDouble);
+  finish = MPI_Wtime();
+  free(tmpMergeListA);
+  free(tmpMergeListB);
+  double * Print = NULL;
+  int i, n;
 
-	/*temporary lists to hold merged lists */
-	tmpMergeListA = (double*) malloc(upperI* sizeof(double));
-	tmpMergeListB = (double*) malloc(upperI* sizeof(double));
+  if (myrank == 0) {
 
-	/*converges in maximum N steps */
-	for (phase = 0; phase < P; phase++)
-	{
-		oddEvenTranspose(x, tmpMergeListA, tmpMergeListB,
-			upperI, phase, evenPartner, oddPartner,
-			evenPartnerI, oddPartnerI, myrank, P,
-			MPI_COMM_WORLD);
-		// x = tmpX;
-	}
+    int t = upperI * P;
+    Print = (double * ) malloc(t * sizeof(double));
+    MPI_Gather(x, upperI, MPI_DOUBLE, Print, upperI, MPI_DOUBLE, 0,
+      MPI_COMM_WORLD);
+    if (N < 20) {
 
-	finish = MPI_Wtime();
-	free(tmpMergeListA);
-	free(tmpMergeListB);
-	double *Print = NULL;
-	int i, n;
+      printf("******************************\n");
+      printf("Final sorted List: ");
+      for (i = 0; i < N; i++)
+        printf("%f ", Print[i]);
+      printf("\n");
+      free(Print);
+    }
+    printf("N=%d P=%d Time= = %e seconds\n", N, P, finish - start);
+    const char * filename = "RunningTime.txt";
+    FILE * f;
+    f = fopen(filename, "a");
+    fprintf(f, "%d %d %e \n", N, P, finish - start);
+    printf("******************************\n");
+  } else {
+    MPI_Gather(x, upperI, MPI_DOUBLE, Print, upperI, MPI_DOUBLE, 0,
+      MPI_COMM_WORLD);
+  }
 
-	if (myrank == 0)
-	{
-
-		int t=upperI*P;
-		Print = (double*) malloc(t* sizeof(double));
-		MPI_Gather(x, upperI, MPI_DOUBLE, Print, upperI, MPI_DOUBLE, 0,
-			MPI_COMM_WORLD);
-      if(N<20){
-
-		printf("******************************\n");
-		printf("Final sorted List: ");
-		for (i = 0; i < N; i++)
-			printf("%f ", Print[i]);
-		printf("\n");
-		free(Print);}
-		printf("N=%d P=%d Time= = %e seconds\n", N, P, finish - start);
-      const char* filename = "RunningTime.txt";
-      FILE * f;
-      f = fopen(filename, "a");
-      fprintf(f,"%d %d %e \n", N, P, finish - start);
-		printf("******************************\n");
-	}
-	else
-	{
-		MPI_Gather(x, upperI, MPI_DOUBLE, Print, upperI, MPI_DOUBLE, 0,
-			MPI_COMM_WORLD);
-	}
-
-	free(x);
-	MPI_Finalize();
-	return 0;
+  free(x);
+  MPI_Finalize();
+  return 0;
 }
