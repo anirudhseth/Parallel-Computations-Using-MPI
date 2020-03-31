@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
 void printArray(double arr[], int size) {
 
@@ -40,19 +41,31 @@ void bitonicSort(double arr[], int low, int count, bool direction) {
 }
 
 int main(int argc, char ** argv) {
+  bool debug = false;
+  clock_t start, end;
+  double cpu_time_used;
   double * arr;
-  int N = 10;
+  int N = 1000000;
   srandom(1);
   /*generate random array between 0 and 1*/
   arr = (double * ) malloc(N * sizeof(double));
   for (int i = 0; i < N; i++) {
     arr[i] = ((double) random()) / (RAND_MAX);
   }
-  printf("Orignal Array: ");
-  printArray(arr, N);
+  if (debug) {
+    printf("Orignal Array: ");
+    printArray(arr, N);
+  }
   bool direction = true; /* true for ascending , false for descending*/
+  start = clock();
   bitonicSort(arr, 0, N, direction);
-  printf("Sorted Array: ");
-  printArray(arr, N);
+  end = clock();
+  if (debug) {
+    printf("Sorted Array: ");
+    printArray(arr, N);
+  }
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("Number of elements: %d\n",N);
+  printf("Time taken: %f seconds.\n", cpu_time_used);
   return 0;
 }
