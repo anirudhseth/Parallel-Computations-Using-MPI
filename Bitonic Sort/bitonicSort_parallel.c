@@ -6,15 +6,15 @@
 #define LOW 0
 #define HIGH 1
 
-int *local_list, *temp_list, *merge_list;
+double *local_list, *temp_list, *merge_list;
 double startT, stopT;
 
-void mergeLow(int list_size, int* list1, int* list2)
+void mergeLow(int list_size, double *list1, double *list2)
 {
 	int i;
 	int index1 = 0;
 	int index2 = 0;
-	merge_list = (int*) malloc(list_size* sizeof(int));
+	merge_list = (double*) malloc(list_size* sizeof(double));
 	for (i = 0; i < list_size; i++)
 		if (list1[index1] <= list2[index2])
 		{
@@ -32,12 +32,12 @@ void mergeLow(int list_size, int* list1, int* list2)
 	free(merge_list);
 }
 
-void mergeHigh(int list_size, int* list1, int* list2)
+void mergeHigh(int list_size, double *list1, double *list2)
 {
 	int i;
 	int index1 = list_size - 1;
 	int index2 = list_size - 1;
-	merge_list = (int*) malloc(list_size* sizeof(int));
+	merge_list = (double*) malloc(list_size* sizeof(double));
 	for (i = list_size - 1; i >= 0; i--)
 		if (list1[index1] >= list2[index2])
 		{
@@ -55,11 +55,11 @@ void mergeHigh(int list_size, int* list1, int* list2)
 	free(merge_list);
 }
 
-void mergeSplit(int list_size, int* local_list, int which_keys, int partner, MPI_Comm comm)
+void mergeSplit(int list_size, double *local_list, int which_keys, int partner, MPI_Comm comm)
 {
 	MPI_Status status;
-	temp_list = (int*) malloc(list_size* sizeof(int));
-	MPI_Sendrecv(local_list, list_size, MPI_INT, partner, 0, temp_list, list_size, MPI_INT, partner, 0, comm, &status);
+	temp_list = (double*) malloc(list_size* sizeof(double));
+	MPI_Sendrecv(local_list, list_size, MPI_DOUBLE, partner, 0, temp_list, list_size, MPI_DOUBLE, partner, 0, comm, &status);
 	if (which_keys == HIGH)
 		mergeHigh(list_size, local_list, temp_list);
 	else
@@ -77,12 +77,9 @@ int compareDouble(const void *a, const void *b)
 		return 0;
 }
 
-int compareInt(const void *a, const void *b)
-{
-	return (*(int*) a - *(int*) b);
-}
 
-void bitonicsort_increase(int list_size, int *local_list, int processorSize, MPI_Comm comm)
+
+void bitonicsort_increase(int list_size, double *local_list, int processorSize, MPI_Comm comm)
 {
 	unsigned eor_bit;
 	int processorDimension, stage, partner, my_rank;
@@ -101,7 +98,7 @@ void bitonicsort_increase(int list_size, int *local_list, int processorSize, MPI
 	}
 }
 
-void bitonicsort_decrease(int list_size, int *local_list, int processorSize, MPI_Comm comm)
+void bitonicsort_decrease(int list_size, double *local_list, int processorSize, MPI_Comm comm)
 {
 	unsigned eor_bit;
 	int processorDimension, stage, partner, my_rank;
@@ -132,12 +129,12 @@ int main(int argc, char *argv[])
 	n = atoi(argv[1]);
 
 	list_size = n / p;
-	local_list = (int*) malloc(list_size* sizeof(int));
+	local_list = (double*) malloc(list_size* sizeof(double));
 
 	srand(time(NULL) + my_rank);
 	for (i = 0; i < list_size; i++)
 	{
-		local_list[i] = rand() % (atoi(argv[1]));
+		local_list[i] = ((double) random()) / (RAND_MAX);
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -145,13 +142,13 @@ int main(int argc, char *argv[])
 	{
 		printf("Processor %d:", my_rank);
 		for (int i = 0; i < list_size; i++)
-			printf("%d ", local_list[i]);
+			printf("%f ", local_list[i]);
 		printf("\n");
 	}
 
 	startT = MPI_Wtime();
 
-	qsort(local_list, list_size, sizeof(int), compareInt);
+	qsort(local_list, list_size, sizeof(double), compareDouble);
 
 	for (processorSize = 2, andBit = 2; processorSize <= p; processorSize = processorSize *2, andBit = andBit << 1)
 		if ((my_rank & andBit) == 0)
@@ -159,23 +156,35 @@ int main(int argc, char *argv[])
 		else
 			bitonicsort_decrease(list_size, local_list, processorSize, MPI_COMM_WORLD);
 	MPI_Barrier(MPI_COMM_WORLD);
-
 	if (my_rank == 0)
 	{
 		stopT = MPI_Wtime();
-		printf("N: %d\n", n);
-		printf("P: %d\n", p);
-		printf("Time(sec): %f\n", stopT - startT);
 	}
 
 	if (debug)
 	{
-		printf("Processor %d:", my_rank);
-		for (int i = 0; i < list_size; i++)
-			printf("%d ", local_list[i]);
-		printf("\n");
-	}
+		double *Print;
+		Print = (double*) malloc(n* sizeof(double));
+		MPI_Gather(local_list, list_size, MPI_DOUBLE, Print, list_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		if (my_rank == 0)
+		{
+			printf("N: %d\n", n);
+			printf("P: %d\n", p);
+			printf("Time(sec): %f\n", stopT - startT);
 
+			printf("Final Sorted List: ");
+
+			for (int i = 0; i < n; i++)
+				printf("%.5f ", Print[i]);
+			printf("\n");
+		}
+	}
+	const char * filename = "Bitonic_Parallel_RunningTime.txt";
+	if(my_rank==0)
+	{
+    FILE * f;
+    f = fopen(filename, "a");
+    fprintf(f, "%d %d %f \n", n, p, stopT - startT);
 	MPI_Finalize();
-	free(local_list);
+	free(local_list);}
 }
