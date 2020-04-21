@@ -6,56 +6,56 @@
 #define LOW 0
 #define HIGH 1
 
-int *local_list, *temp_list, *scratch_list;
+int *local_list, *temp_list, *merge_list;
 double startT, stopT;
 
-void mergeLow(int list_size, int list1[], int list2[])
+void mergeLow(int list_size, int* list1, int* list2)
 {
 	int i;
 	int index1 = 0;
 	int index2 = 0;
-	scratch_list = (int*) malloc(list_size* sizeof(int));
+	merge_list = (int*) malloc(list_size* sizeof(int));
 	for (i = 0; i < list_size; i++)
 		if (list1[index1] <= list2[index2])
 		{
-			scratch_list[i] = list1[index1];
+			merge_list[i] = list1[index1];
 			index1++;
 		}
 	else
 	{
-		scratch_list[i] = list2[index2];
+		merge_list[i] = list2[index2];
 		index2++;
 	}
 
 	for (i = 0; i < list_size; i++)
-		list1[i] = scratch_list[i];
-
+		list1[i] = merge_list[i];
+	free(merge_list);
 }
 
-void mergeHigh(int list_size, int list1[], int list2[])
+void mergeHigh(int list_size, int* list1, int* list2)
 {
 	int i;
 	int index1 = list_size - 1;
 	int index2 = list_size - 1;
-	scratch_list = (int*) malloc(list_size* sizeof(int));
+	merge_list = (int*) malloc(list_size* sizeof(int));
 	for (i = list_size - 1; i >= 0; i--)
 		if (list1[index1] >= list2[index2])
 		{
-			scratch_list[i] = list1[index1];
+			merge_list[i] = list1[index1];
 			index1--;
 		}
 	else
 	{
-		scratch_list[i] = list2[index2];
+		merge_list[i] = list2[index2];
 		index2--;
 	}
 
 	for (i = 0; i < list_size; i++)
-		list1[i] = scratch_list[i];
-
+		list1[i] = merge_list[i];
+	free(merge_list);
 }
 
-void mergeSplit(int list_size, int local_list[], int which_keys, int partner, MPI_Comm comm)
+void mergeSplit(int list_size, int* local_list, int which_keys, int partner, MPI_Comm comm)
 {
 	MPI_Status status;
 	temp_list = (int*) malloc(list_size* sizeof(int));
@@ -64,6 +64,7 @@ void mergeSplit(int list_size, int local_list[], int which_keys, int partner, MP
 		mergeHigh(list_size, local_list, temp_list);
 	else
 		mergeLow(list_size, local_list, temp_list);
+	free(temp_list);
 }
 
 int compareDouble(const void *a, const void *b)
@@ -176,4 +177,5 @@ int main(int argc, char *argv[])
 	}
 
 	MPI_Finalize();
+	free(local_list);
 }
