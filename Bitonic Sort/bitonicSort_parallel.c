@@ -155,12 +155,12 @@ int main(int argc, char *argv[])
 			bitonicsort_increase(list_size, local_list, processorSize, MPI_COMM_WORLD);
 		else
 			bitonicsort_decrease(list_size, local_list, processorSize, MPI_COMM_WORLD);
-	MPI_Barrier(MPI_COMM_WORLD);
+	// MPI_Barrier(MPI_COMM_WORLD);
 	if (my_rank == 0)
 	{
 		stopT = MPI_Wtime();
 	}
-
+	MPI_Finalize();
 	if (debug)
 	{
 		double *Print;
@@ -185,6 +185,6 @@ int main(int argc, char *argv[])
     FILE * f;
     f = fopen(filename, "a");
     fprintf(f, "%d %d %f \n", n, p, stopT - startT);
-	MPI_Finalize();
+
 	free(local_list);}
 }
